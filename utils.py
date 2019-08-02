@@ -15,7 +15,7 @@ def parse_ref(ref):
     return book_num, book, chapter, verse
 
 
-def read_refs(path='bernard/output/bernard/refs.csv'):
+def read_refs(path='output/bernard/refs.csv'):
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -26,7 +26,7 @@ def read_refs(path='bernard/output/bernard/refs.csv'):
             yield ref_type, ref, span
 
 
-def read_mappings(path='bernard/output/mappings.csv'):
+def read_mappings(path='output/mappings.csv'):
     with open(path) as f:
         mappings = {}
         for line in f:
@@ -36,7 +36,7 @@ def read_mappings(path='bernard/output/mappings.csv'):
     return mappings
 
 
-def read_bernard_lines(path='bernard/output/bernard/docs'):
+def read_bernard_lines(path='output/bernard/docs'):
     for f in os.listdir(path):
         with open(os.path.join(path, f)) as f:
             for line in f:
@@ -47,13 +47,16 @@ def read_bernard_lines(path='bernard/output/bernard/docs'):
                     yield None
 
 
-def read_NT_lines(path='bernard/output/NT.csv'):
-    by_id = {}
+def read_NT_lines(path='output/NT.csv'):
     with open(path) as f:
         for line in f:
-            book, chapter, verse_num, verse = line.strip().split('\t')
-            by_id[book, chapter, verse_num] = verse
-    return by_id
+            # book, chapter, verse_num, verse(, lemma)
+            yield line.strip().split('\t')
+
+
+def read_stopwords(path='stopword.txt'):
+    with open(path) as f:
+        return set(w.strip() for w in f)
 
 
 def collect_refs():
@@ -84,21 +87,31 @@ def collect_refs():
     print("Missing {} references".format(missing))
 
 
-mappings = read_mappings()
-NT = read_NT_lines()
-refs = list(collect_refs())
-missing = 0
-output = []
-for ref in refs:
-    ref_type, (book_num, book, chapter, verse_num), span, text = ref
-    try:
-        NT_book = mappings[book]
-        if book_num is not None:
-            NT_book = book_num + ' ' + NT_book
-        target = NT[NT_book, chapter, verse_num]
-        output.append((ref, target))
-    except Exception:
-        missing += 1
+def build_bible_ref(ref, mappings):
+    book_num, book, chapter, verse_num = ref
+    book = mappings[book]
+    if book_num is not None:
+        book = book_num + ' ' + book
+    return {'book': book, 'chapter': chapter, 'verse_num': verse_num}
+
+
+# mappings = read_mappings()
+# NT = {}
+# for book, chapter, verse_num, verse, *_ in read_NT_lines():
+#     NT[book, chapter, verse_num] = verse
+# refs = list(collect_refs())
+# missing = 0
+# output = []
+# for ref in refs:
+#     ref_type, (book_num, book, chapter, verse_num), span, text = ref
+#     try:
+#         NT_book = mappings[book]
+#         if book_num is not None:
+#             NT_book = book_num + ' ' + NT_book
+#         target = NT[NT_book, chapter, verse_num]
+#         output.append((ref, target))
+#     except Exception:
+#         missing += 1
 
 # by_type = collections.defaultdict(list)
 # for ref, target in output:

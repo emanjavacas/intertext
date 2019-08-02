@@ -1,4 +1,5 @@
 
+import tqdm
 import collections
 import os
 
@@ -21,7 +22,7 @@ def get_verses(tree):
             print(e)
 
 
-def read_NT(path='bernard/source/NT/'):
+def read_NT(path='source/NT/'):
     by_doc_id = collections.defaultdict(dict)
     for f in os.listdir(path):
         if not f.endswith('xml'):
@@ -41,18 +42,23 @@ if __name__ == '__main__':
     parser.add_argument('--source', default='source/NT/')
     parser.add_argument('--target', default='output/NT.csv')
     parser.add_argument('--device', default='cpu')
+    parser.add_argument('--modelpath')
     args = parser.parse_args()
 
     import utils
     import pie
-    model = pie.SimpleModel.load()
-    model.to(args.device)
+    model = None
+    if args.modelpath:
+        model = pie.SimpleModel.load(args.modelpath)
+        model.to(args.device)
 
     with open(args.target, 'w') as f:
-        for doc_id, verses in read_NT(path=args.source).items():
+        for doc_id, verses in tqdm.tqdm(list(read_NT(path=args.source).items())):
             book, chapter = doc_id.split('-')
             for verse_id, verse in verses.items():
-                lemmas = utils.lemmatize(
-                    model, verse.lower().split(), device='args.device')['lemma']
-                lemmas = ' '.join(lemmas)
-                f.write('\t'.join([book, chapter, str(verse_id), verse, lemmas]) + '\n')
+                line = [book, chapter, str(verse_id), verse]
+                if model is not None:
+                    lemmas = utils.lemmatize(
+                        model, verse.lower().split(), device=args.device)['lemma']
+                    line.append(' '.join(lemmas))
+                f.write('\t'.join(line) + '\n')
