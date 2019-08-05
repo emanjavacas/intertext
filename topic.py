@@ -3,6 +3,11 @@ import collections
 import itertools
 
 import tqdm
+from sklearn.decomposition import NMF
+from sklearn.feature_extraction.text import TfidfVectorizer
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.spatial import distance
 
 import utils
 
@@ -57,8 +62,8 @@ def get_most_frequent():
     return stopwords
 
 
-def get_chunks(words, max_chunk_size, min_chunk_size=None):
-    for i in range(0, len(words), max_chunk_size):
+def get_chunks(words, chunk_size, min_chunk_size=None):
+    for i in range(0, len(words), chunk_size):
         chunk = words[i:i+chunk_size]
         if min_chunk_size is None or len(chunk) > min_chunk_size:
             yield chunk
@@ -134,7 +139,104 @@ def get_collection_with_refs(chunk_size, min_chunk_size=None):
         NT_doc_ids[NT_doc_id] = book
 
     return (bernard, NT), refs, (b_doc_ids, NT_doc_ids)
-        
+
+
+def read_docs(path, stopwords=None):
+    with open(path) as f:
+        for line in f:
+            doc_id, doc = line.strip().split('\t')
+            if stopwords is not None:
+                doc = ' '.join([w for w in doc.split() if w not in stopwords])
+            yield doc_id, doc
+
+
+def read_refs(path):
+    with open(path) as f:
+        for line in f:
+            ref_id, b_doc, NT_doc = line.strip().split('\t')
+            yield int(ref_id), int(b_doc), int(NT_doc)
+
+
+def fit_model(docs,
+              # model parameters
+              k=10,
+              # vectorizer parameters
+              min_df=1, max_df=1.0, max_features=None, **kwargs):
+
+    counter = TfidfVectorizer(min_df=2, max_features=max_features)
+    M = counter.fit_transform(docs)
+    model = NMF(n_components=k, init='nndsvd', **kwargs)
+    W = model.fit_transform(M)
+    H = model.components_
+
+    return model, counter, M, W, H
+
+
+def get_descriptors(H, terms, topic_index, top_terms=10):
+    descriptor_indices = H[topic_index, :].argsort()[::-1]
+    descriptors = []
+    for t in descriptor_indices[:top_terms]:
+        descriptors.append(terms[t])
+    return descriptors
+
+
+def plot_descriptors(H, terms, topic_index, top_terms=10):
+    descriptor_indices = H[topic_index, :].argsort()[::-1]
+    descriptors = []
+    descriptor_weights = []
+    for term in descriptor_indices[:top_terms]:
+        descriptors.append(terms[term])
+        descriptor_weights.append(H[topic_index, term])
+
+    descriptors.reverse()
+    descriptor_weights.reverse()
+
+    plt.figure(figsize=(12, 6))
+    plt.barh(np.arange(len(descriptor_weights)),
+             descriptor_weights,
+             align='center',
+             tick_label=descriptors)
+    plt.tick_params(labelsize=14)
+    plt.show()
+
+
+def get_topic_coherence(descriptor_terms, similarity_fn):
+    coherence = 0.0
+    n = 0
+    for i in range(len(descriptor_terms)):
+        term_a = descriptor_terms[i]
+        for j in range(i + 1, len(descriptor_terms)):
+            term_b = descriptor_terms[j]
+            try:
+                coherence += similarity_fn(term_a, term_b)
+                n += 1
+            except Exception:
+                pass
+    return coherence / n
+
+
+def get_model_coherence(similarity_fn, H, terms, top_terms=10):
+    k = H.shape[0]
+    coherence = 0
+    for topic in range(k):
+        descriptor_terms = get_descriptors(H, terms, topic, top_terms=top_terms)
+        coherence += get_topic_coherence(descriptor_terms, similarity_fn)
+    return coherence / k
+
+
+class WordSimilarity:
+    def __init__(self, path):
+        words = {}
+        with open(path) as f:
+            for line in f:
+                word, *vec = line.strip().split()
+                words[word] = np.array([float(v) for v in vec])
+
+        self.words = words
+
+    def get_similarity(self, term_a, term_b):
+        return 1-distance.cosine(self.words[term_a], self.words[term_b])
+
 
 if __name__ == '__main__':
     import os
@@ -162,4 +264,4 @@ if __name__ == '__main__':
 
     with open(os.path.join(outfolder, 'refs.csv'), 'w') as f:
         for ref_id, b_doc, NT_doc in refs:
-            f.write('\t'.join([ref_id, b_doc, NT_doc]) + '\n')
+            f.write('\t'.join([str(ref_id), str(b_doc), str(NT_doc)]) + '\n')
