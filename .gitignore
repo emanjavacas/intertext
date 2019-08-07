@@ -2,3 +2,6 @@
 output/
 source/
 __pycache__/
+patrologia/corrected/
+patrologia/processed/
+patrologia/processed-hyphens/
