@@ -1,0 +1,22 @@
+
+* Get patrologia/processed
+
+From within /intertext/patrologia
+#+BEGIN_SRC bash
+bash run.sh
+#+END_SRC
+
+
+* Get refs.txt
+
+From within /intertext
+#+BEGIN_SRC bash
+grep -o -E "\([^)]+\)" patrologia/processed/*/* | grep -E "\. [xivlXIVL]+," > refs.txt
+#+END_SRC
+
+* Get vocab
+
+From within /intertext
+#+BEGIN_SRC bash
+cat patrologia/processed/*/* | sed -E 's/[[:punct:]]/ /g' | wordfrequency | sed -E 's/^[ ]+//g' > patrologia/vocab.csv
+#+END_SRC

@@ -38,9 +38,9 @@ def read_bernard_scraped():
 
 if __name__ == '__main__':
     targets = list(read_bernard_scraped())
-    
+
     by_doc_id = prepare_bible.read_NT()
-    
+
     dists = collections.defaultdict(lambda: collections.defaultdict(list))
     for doc_id, ids in by_doc_id.items():
         print(doc_id)
@@ -49,14 +49,14 @@ if __name__ == '__main__':
                 if abs(len(nt.split()) - len(bibl.split())) > 2:
                     continue
                 dists[bibl_id][doc_id, nt_idx] = LCS(nt.split(), bibl.split()).size
-    
+
     filtered = []
     for bibl_id in dists:
         for doc_id, nt_idx in dists[bibl_id]:
             if (dists[bibl_id][doc_id, nt_idx] /
                 len(by_doc_id[doc_id][nt_idx].split()) > 0.9):
                 filtered.append((doc_id, nt_idx, bibl_id))
-    
+
     mappings = collections.defaultdict(set)
     for doc_id, nt_idx, bibl_id in filtered:
         _, stuff, book, verse_id = bibl_id.split('_')
@@ -65,14 +65,15 @@ if __name__ == '__main__':
         if doc_id[0].isdigit():
             *_, doc_id = doc_id.split()
         mappings[stuff].add(doc_id)
-    
+
     for stuff, doc_ids in mappings.items():
         if len(doc_ids) > 1:
-            s = sorted(doc_ids, key=lambda doc_id: sum(c in stuff for c in doc_id), reverse=True)
+            s = sorted(doc_ids, key=lambda doc_id: sum(c in stuff for c in doc_id),
+                       reverse=True)
             mappings[stuff] = s[0]
         else:
             mappings[stuff] = list(doc_ids)[0]
-    
-    with open('output/mappings.csv', 'w') as f:
+
+    with open('output/bernard_bible_mappings.csv', 'w') as f:
         for bibl, nt in mappings.items():
             f.write(bibl + '\t' + nt + '\n')

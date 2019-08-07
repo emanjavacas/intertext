@@ -26,7 +26,7 @@ def read_refs(path='output/bernard/refs.csv'):
             yield ref_type, ref, span
 
 
-def read_mappings(path='output/mappings.csv'):
+def read_mappings(path='output/bernard_bible_mappings.csv'):
     with open(path) as f:
         mappings = {}
         for line in f:
