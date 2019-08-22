@@ -1,5 +1,7 @@
 
 import os
+import numpy as np
+
 import pie
 
 
@@ -8,11 +10,36 @@ def lemmatize(model, sent, use_beam=True, beam_width=12, device='cpu'):
     return model.predict(inp, "lemma", use_beam=use_beam, beam_width=beam_width)
 
 
+def load_embeddings(words, path):
+    print("loading {} words from {}".format(len(words), path))
+    embs, vocab = [], []
+    with open(path) as f:
+        next(f)
+        for line in f:
+            word, *vec = line.split()
+            if word in words:
+                embs.append(list(map(float, vec)))
+                vocab.append(word)
+
+    print("Found {}/{} words".format(len(vocab), len(words)))
+    return np.array(embs), vocab
+
+
 def parse_ref(ref):
     _, book, chapter, verse = ref.split('_')
     *book_num, book = book.split('%20')
     book_num = book_num[0] if book_num else None
     return book_num, book, chapter, verse
+
+
+def parse_id(s):
+    "'lat.w.Sermo62.1.16'"
+    _, wordtype, sermo, chapter, verse = s.split('.')
+
+    return {'wordtype': wordtype,
+            'sermo': sermo,
+            'chapter': chapter,
+            'verse': verse}
 
 
 def read_refs(path='output/bernard/refs.csv'):
@@ -36,20 +63,27 @@ def read_mappings(path='output/bernard_bible_mappings.csv'):
     return mappings
 
 
-def read_bernard_lines(path='output/bernard/docs'):
+def read_bernard_lines(path='output/bernard/docs', drop_pc=False, lower=False):
     for f in os.listdir(path):
         with open(os.path.join(path, f)) as f:
             for line in f:
                 line = line.strip()
                 if line:
-                    yield line.split('\t')
+                    if lower:
+                        line = line.lower()
+                    line = line.split('\t')
+                    if drop_pc and '.pc.' in line[0]:
+                        continue
+                    yield line
                 else:
                     yield None
 
 
-def read_NT_lines(path='output/NT.csv'):
+def read_NT_lines(path='output/NT.csv', lower=False):
     with open(path) as f:
         for line in f:
+            if lower:
+                line = line.lower()
             # book, chapter, verse_num, verse(, lemma)
             yield line.strip().split('\t')
 

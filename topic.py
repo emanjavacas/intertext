@@ -1,4 +1,6 @@
 
+import string
+import glob
 import collections
 import itertools
 
@@ -12,24 +14,13 @@ from scipy.spatial import distance
 import utils
 
 
-def parse_id(string):
-    "'lat.w.Sermo62.1.16'"
-    _, wordtype, sermo, chapter, verse = string.split('.')
-
-    return {'wordtype': wordtype,
-            'sermo': sermo,
-            'chapter': chapter,
-            'verse': verse}
-
-
 def load_bernard_documents():
     sermos = []
-    for sermo, group in itertools.groupby(filter(None, utils.read_bernard_lines()),
-                                          key=lambda tup: parse_id(tup[0])['sermo']):
+    for sermo, group in itertools.groupby(
+            filter(None, utils.read_bernard_lines(drop_pc=True)),
+            key=lambda tup: utils.parse_id(tup[0])['sermo']):
         sermo_data = []
         for idx, word, _, _, lemma in group:
-            if '.pc.' in idx:
-                continue
             sermo_data.append((idx, word, lemma))
         sermos.append(sermo_data)
 
@@ -45,6 +36,34 @@ def load_NT_documents():
             for word, lemma in zip(verse.split(), lemma.split()):
                 doc.append(((book, chapter, verse_num), word, lemma))
         docs.append(doc)
+
+    return docs
+
+
+def load_patrologia(path='patrologia/processed-tokens/', punct=False, digits=False):
+    docs = []
+    p_ = str.maketrans('', '', string.punctuation)
+    d_ = str.maketrans('', '', string.digits)
+    for idx, f in enumerate(glob.glob(path + '*/*')):
+        _, _, dirname, fname = f.split('/')
+
+        with open(f) as f:
+            doc = []
+            for line in f:
+                line = line.strip()
+                if not punct:
+                    line = line.translate(p_)
+                if not digits:
+                    line = line.translate(d_)
+                line = line.split()
+                if not line:
+                    continue
+                doc.extend(line)
+
+        if not doc:
+            continue
+
+        docs.append(((dirname, fname), doc))
 
     return docs
 
@@ -67,7 +86,7 @@ def get_chunks(words, chunk_size, min_chunk_size=None):
         chunk = words[i:i+chunk_size]
         if min_chunk_size is None or len(chunk) > min_chunk_size:
             yield chunk
-    
+
 
 def chunk_collection(docs, chunk_size, **kwargs):
     return [chunk for doc in docs for chunk in get_chunks(doc, chunk_size, **kwargs)]

@@ -20,3 +20,15 @@ From within /intertext
 #+BEGIN_SRC bash
 cat patrologia/processed/*/* | sed -E 's/[[:punct:]]/ /g' | wordfrequency | sed -E 's/^[ ]+//g' > patrologia/vocab.csv
 #+END_SRC
+
+* Fix split words (with some errors)
+
+#+BEGIN_SRC bash
+python patrologia/fix_splits.py
+#+END_SRC
+
+* Tokenize
+
+#+BEGIN_SRC bash
+bash tokenize.sh
+#+END_SRC
