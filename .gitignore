@@ -2,6 +2,8 @@
 output/
 source/
 __pycache__/
+patrologia/vocab.csv
 patrologia/corrected/
 patrologia/processed/
 patrologia/processed-hyphens/
+patrologia/processed-tokens/
