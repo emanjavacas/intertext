@@ -72,7 +72,8 @@ def read_bernard_lines(path='output/bernard/docs', drop_pc=False, lower=False):
                     if lower:
                         line = line.lower()
                     line = line.split('\t')
-                    if drop_pc and '.pc.' in line[0]:
+                    wid, token, _, _, lemma = line
+                    if drop_pc and '.pc.' in wid:
                         continue
                     yield line
                 else:
@@ -85,7 +86,9 @@ def read_NT_lines(path='output/NT.csv', lower=False):
             if lower:
                 line = line.lower()
             # book, chapter, verse_num, verse(, lemma)
-            yield line.strip().split('\t')
+            line = line.strip().split('\t')
+
+            yield line
 
 
 def read_stopwords(path='stopword.txt'):
