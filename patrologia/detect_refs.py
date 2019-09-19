@@ -74,10 +74,6 @@ def extract_refs(path):
     return p_refs
 
 
-# counter = collections.Counter(tup[1] for tup in extract_refs('patrologia/refs.txt'))
-# mapping2 = get_levenshtein_mapping(counter)
-
-
 def merge_refs(refs):
     counter = collections.defaultdict(collections.Counter)
     for book_num, book, chapter, verse in refs:
