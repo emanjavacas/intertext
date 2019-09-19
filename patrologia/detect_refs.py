@@ -1,4 +1,6 @@
 
+import os
+import glob
 import collections
 import re
 import numpy as np
@@ -26,14 +28,15 @@ def extract_ref(ref):
         refs = ref.split(";")
         output = []
         for ref in refs:
+            ref = ref.strip()
             ref = extract_ref(ref)
             if ref is not None:
                 output.append(ref)
         return output
 
-    m = re.match(r"([ivcxl]+ )?([a-z]+) ?\. ([icvxl]+), ([0-9]+)", ref)
+    m = re.match(r"([ivcxl]+ )?([a-z]+) ?\. ([icvxl]+) ?, ([0-9]+)", ref)
     if m is not None:
-        return m.groups()
+        return tuple(g.strip() if g is not None else g for g in m.groups())
 
 
 def get_levenshtein_mapping(counter):
@@ -55,8 +58,8 @@ def get_levenshtein_mapping(counter):
     return mapping
 
 
-def extract_refs():
-    names, refs = zip(*get_refs())
+def extract_refs(path):
+    names, refs = zip(*get_refs(path=path))
     p_refs = []
     for r in refs:
         p_r = extract_ref(r)
@@ -69,6 +72,10 @@ def extract_refs():
                 p_refs.append(p_r)
 
     return p_refs
+
+
+# counter = collections.Counter(tup[1] for tup in extract_refs('patrologia/refs.txt'))
+# mapping2 = get_levenshtein_mapping(counter)
 
 
 def merge_refs(refs):
@@ -134,13 +141,13 @@ def roman_to_int(roman):
 class BibleRef:
     def __init__(self):
         self.fixes = read_mapping('patrologia/book.mapping')
-        self.mapping = utils.read_mappings('patrologia/patrologia_bible_mappings.csv')
+        self.mapping = utils.read_mappings('patrologia/bible.mapping')
 
     def map(self, ref):
         book_num, book, chapter, verse = ref
         book = self.mapping[self.fixes.get(book, book)]
         if book_num is not None:
-            book = str(roman_to_int(book_num)) + book
+            book = str(roman_to_int(book_num)) + ' ' + book
         chapter = str(roman_to_int(chapter))
         return book, chapter, verse
 
@@ -150,46 +157,54 @@ class BibleRef:
             ref = m.group()
             try:
                 ref = extract_ref(ref)
-                book, chapter, verse = self.map(ref)
-                yield (book, chapter, verse), (start, end)
-            except Exception as e:
-                pass
-
-
-NT = {}
-for book, chapter, verse, token, lemma in utils.read_NT_lines():
-    NT[book, chapter, verse] = token
-
-bible_ref = BibleRef()
-
-# refs = extract_refs()
-# processed = []
-# for ref in refs:
-#     try:
-#         processed.append(bible_ref.map(ref))
-#     except:
-#         pass
-
-# found = []
-# for ref in processed:
-#     if ref in NT:
-#         found.append((ref, NT[ref]))
-
-
-import glob
-
-found = 0
-for f in glob.glob('patrologia/processed-hyphens/*/*'):
-    with open(f) as f:
-        text = ' '.join(f.read().split())
-        for ref, (start, end) in bible_ref.find_refs(text):
-            if ref not in NT:
-                print("missing ref in NT", ref)
+                if isinstance(ref, tuple):
+                    ref = [ref]
+                for ref in ref:
+                    book, chapter, verse = self.map(ref)
+                    yield (book, chapter, verse), (start, end)
+            except Exception:
                 continue
 
-            found += 1
-            print("Id: {}".format(found),
-                  "\n\nref: ", ref,
-                  "\n\ntext: ", ' '.join(text[max(0, start-150): start].strip().split()),
-                  "\n\nbible:", NT[ref],
-                  "\n\n****\n\n\n")
+
+def encode_ref(ref):
+    book, chapter, verse = ref
+    return '-'.join(book.split()) + '_' + '_'.join([chapter, verse])
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--target', default='patrologia/output/refs')
+    parser.add_argument('--verbose', action='store_true')
+    args = parser.parse_args()
+
+    NT = {}
+    for book, chapter, verse, token, lemma in utils.read_NT_lines():
+        NT[book, chapter, verse] = token
+
+    bible_ref = BibleRef()
+    found = 0
+
+    for f in glob.glob('patrologia/output/merged/*/*'):
+
+        parent = os.path.basename(os.path.dirname(f))
+        parent = os.path.join(args.target, parent)
+        if not os.path.isdir(parent):
+            os.makedirs(parent)
+        path = os.path.join(parent, os.path.basename(f))
+
+        with open(f) as inf, open(path, 'w') as outf:
+            text = ' '.join(inf.read().split())
+            refs = list(bible_ref.find_refs(text))[::-1]
+            for ref, (start, end) in refs:
+                if ref not in NT:
+                    if args.verbose:
+                        print("missing ref in NT", ref)
+                    continue
+                else:
+                    text = text[:start] + ' ' + encode_ref(ref) + ' ' + text[end:]
+                    found += 1
+
+            outf.write(' '.join(text.split()))
+
+    print("Found {} refs".format(found))

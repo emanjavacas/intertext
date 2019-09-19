@@ -1,6 +1,6 @@
 
-ROOT=patrologia/processed-hyphens
-TARGET=patrologia/processed-tokens
+ROOT=patrologia/output/refs
+TARGET=patrologia/output/tokenized
 
 if [ ! -e $TARGET ]; then
     mkdir $TARGET;
@@ -14,5 +14,5 @@ for f in $ROOT/*/*; do
 	mkdir $TARGET/$DIR;
     fi
 
-    ucto -n $f > $TARGET/$DIR/$BASE
+    ucto -S -n $f > $TARGET/$DIR/$BASE
 done
