@@ -61,7 +61,6 @@ if __name__ == '__main__':
             by_src[src_i].add(trg)
 
     # negative examples
-
     for _ in range(args.num_neg * len(rows)):
         src = random.randint(0, len(D) - 1)
         top_k = D[src, -args.top_k:].tolist()
@@ -82,10 +81,10 @@ if __name__ == '__main__':
         rest, stratify=[row[0] for row in rest], train_size=0.5,
         random_state=random_state)
 
-    def write_file(rows, infix):
+    def write_file(rows, infix, header=('ref_type', 'src', 'trg', 'label')):
         path = os.path.join('output', args.outputfile + '.{}.csv'.format(infix))
         with open(path, 'w+') as f:
-            f.write('\t'.join(['ref_type', 'src', 'trg', 'label']) + '\n')
+            f.write('\t'.join(header) + '\n')
             for row in rows:
                 f.write('\t'.join(row) + '\n')
 

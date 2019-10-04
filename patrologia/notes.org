@@ -1,7 +1,7 @@
 
 * Get patrologia/processed
 
-From within /intertext/patrologia
+From within intertext/
 #+BEGIN_SRC bash
 bash run.sh
 #+END_SRC
