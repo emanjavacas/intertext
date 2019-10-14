@@ -91,7 +91,7 @@ def read_NT_lines(path='output/NT.csv', lower=False):
             yield line
 
 
-def read_stopwords(path='stopword.txt'):
+def read_stopwords(path='all.stop'):
     with open(path) as f:
         return set(w.strip() for w in f)
 

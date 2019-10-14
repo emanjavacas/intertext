@@ -34,7 +34,7 @@ def extract_ref(ref):
                 output.append(ref)
         return output
 
-    m = re.match(r"([ivcxl]+ )?([a-z]+) ?\. ([icvxl]+) ?, ([0-9]+)", ref)
+    m = re.match(r"([ivcxl]+ )?([a-z]+) ?\.? ?,? ([icvxl]+) ?, ([0-9]+)", ref)
     if m is not None:
         return tuple(g.strip() if g is not None else g for g in m.groups())
 

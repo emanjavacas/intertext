@@ -4,7 +4,7 @@ psalm psal
 # col joel
 col coloss
 # nom num
-nom rom
+# nom rom
 lue luc
 # cen levit
 cen gen
@@ -14,7 +14,6 @@ esai isai
 prou prov
 ephea ephes
 exodi exod
-tit tim
 jercm jerem
 eccle eccli
 # galal malach
@@ -56,12 +55,13 @@ malac malach
 ? ib hebr
 # then ithess
 then thess
-mach zach
+mach machab
 # ecch zachar
 ecch eccli
 # lsa lsai
 lsa isai
 jacobi jacob
+jac jacob
 # mallh matlh
 mallh matth
 prorerb prov
@@ -78,7 +78,7 @@ jon joan
 # malth matlh
 malth matth
 ? car baruch
-? jud judic
+jud judic
 # maith matlh
 maith matth
 lur luc
@@ -88,12 +88,11 @@ soph sophon
 # math ruth
 math matth
 colou coloss
-es esdr
+# es esdr
 # ioan tlircn
 ioan joan
 # eccls ecclesiastic
 eccls eccli
-# joun jos
 joun joan
 # galai malach
 galai galat
@@ -118,12 +117,12 @@ psul psal
 igor gor
 # motth mutth
 motth matth
-sop judic
-sup judic
+# sop judic
+# sup judic
 # coloa coloaa
 coloa coloss
-jonan jos
-gtn jos
+jonan jonah
+# gtn jos
 # mattll matthl
 mattll matth
 ephet ephes
@@ -147,7 +146,7 @@ galul galat
 ? hum num
 # eecti eecli
 eecti eccli
-aci jae
+# aci jae
 ? meuh esther
 # jaan jos
 jaan joan
@@ -155,7 +154,7 @@ jaan joan
 ? snp judic
 # deuteron deuter
 deuteron deut
-jom jos
+# jom jos
 ? luz num
 # matih mutth
 matih matth
@@ -169,7 +168,7 @@ rebr hebr
 ? eplres eplies
 ? joam joah
 ? lcor gor
-? joau jos
+joau joan
 ? llom liom
 ? gat jae
 # coless colass
@@ -316,7 +315,6 @@ apocal apoc
 pllilipp philipp
 matlh matth
 genes gen
-jacob jac
 lsai isai
 proverb prov
 phil philipp
@@ -325,7 +323,7 @@ lnc luc
 corinth cor
 cur cor
 ptal psal
-zachar zac
+zachar zach
 isui isai
 mutth matth
 eccles eccli
@@ -338,7 +336,6 @@ matthl matth
 cantic cant
 llebr hebr
 coloaa coloss
-daniel dan
 colass coloss
 mattk matth
 joah joan
@@ -396,6 +393,7 @@ joa joam
 # joon jolin
 # agt guc
 # michae zachar
+michae mich
 # rut guc
 # joah joam
 mattlh matth
@@ -414,7 +412,7 @@ jtrem jerem
 # lleg liom
 # tini isui
 # ait gaiat
-# jonae joam
+jonae jonah
 pror prov
 # dom rom
 # jae bar
@@ -489,12 +487,15 @@ ezod exod
 # nic tiin
 # ad guc
 # barucli baruch
-# llabac habac
+llabac habac
 # essi etele
 # gmu jean
 # aggae zachar
+aggae agg
+aggoi agg
 # qlm canj
 # tluc canj
 prover proverb
-# habacuc baruch
+habacuc habac
 # malik matth
+dan daniel

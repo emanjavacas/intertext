@@ -3,10 +3,10 @@ import os
 import collections
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import pairwise_distances, pairwise_kernels
+from sklearn.metrics import pairwise_kernels
 from sklearn.model_selection import train_test_split
 
-import retrieval
+import data
 import random
 
 random_state = 1001
@@ -27,14 +27,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     field = 'lemmas' if args.use_lemmas else 'tokens'
-    bernard, b_id2doc = retrieval.load_bernard(
+    bernard, b_id2doc = data.load_bernard(
         args.nwords, args.overlap, context_words=args.context_words)
     bernard, b_context = zip(*bernard)
     bernard = list(bernard)
-    nt, nt_id2doc = retrieval.load_NT()
+    nt, nt_id2doc = data.load_NT()
     nt, nt_context = zip(*nt)
     nt = list(nt)
-    refs = list(retrieval.load_refs(b_id2doc, nt_id2doc))
+    refs = list(data.load_refs(b_id2doc, nt_id2doc))
 
     # use lemmas for the similarity computation
     tfidf = TfidfVectorizer(norm=None).fit(getattr(doc, 'lemmas') for doc in bernard + nt)
