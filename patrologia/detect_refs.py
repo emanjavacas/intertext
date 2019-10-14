@@ -10,6 +10,9 @@ import Levenshtein
 import utils
 
 
+RE_REF = r"([ivcxl]+ )?([a-z]+) ?[\.,·]? ?[\.,·]? ([icvxl]+) ?[\.,·]? ?([0-9]+|[icvxl]+)"
+
+
 def get_refs(path='patrologia/refs.txt'):
     with open(path) as f:
         for line in f:
@@ -34,7 +37,7 @@ def extract_ref(ref):
                 output.append(ref)
         return output
 
-    m = re.match(r"([ivcxl]+ )?([a-z]+) ?\.? ?,? ([icvxl]+) ?, ([0-9]+)", ref)
+    m = re.match(RE_REF, ref)
     if m is not None:
         return tuple(g.strip() if g is not None else g for g in m.groups())
 
@@ -145,26 +148,40 @@ class BibleRef:
         if book_num is not None:
             book = str(roman_to_int(book_num)) + ' ' + book
         chapter = str(roman_to_int(chapter))
+        if not verse.isdigit():
+            verse = str(roman_to_int(verse))
         return book, chapter, verse
 
     def find_refs(self, text):
         for m in re.finditer("\\([^)]+\\)", text):
             start, end = m.span()
             ref = m.group()
-            try:
-                ref = extract_ref(ref)
-                if isinstance(ref, tuple):
-                    ref = [ref]
-                for ref in ref:
+            ref = extract_ref(ref)
+            # fail to find match
+            if not ref:
+                continue
+            # single ref
+            if isinstance(ref, tuple):
+                try:
                     book, chapter, verse = self.map(ref)
                     yield (book, chapter, verse), (start, end)
-            except Exception:
-                continue
+                except Exception:
+                    continue
+            # multi ref
+            else:
+                refs = []
+                for ref in ref:
+                    try:
+                        book, chapter, verse = self.map(ref)
+                        refs.append((book, chapter, verse))
+                    except Exception:
+                        continue
+                if refs:
+                    yield refs, (start, end)
 
 
-def encode_ref(ref):
-    book, chapter, verse = ref
-    return '-'.join(book.split()) + '_' + '_'.join([chapter, verse])
+def encode_refs(ref):
+    return ' '.join(map(utils.encode_ref, ref))
 
 
 if __name__ == '__main__':
@@ -180,6 +197,7 @@ if __name__ == '__main__':
 
     bible_ref = BibleRef()
     found = 0
+    not_in_nt = 0
 
     for f in glob.glob('patrologia/output/merged/*/*'):
 
@@ -193,14 +211,35 @@ if __name__ == '__main__':
             text = ' '.join(inf.read().split())
             refs = list(bible_ref.find_refs(text))[::-1]
             for ref, (start, end) in refs:
-                if ref not in NT:
-                    if args.verbose:
-                        print("missing ref in NT", ref)
-                    continue
+                # multi-ref
+                if isinstance(ref, list):
+                    # filter out those not in NT
+                    refs = []
+                    for ref in ref:
+                        if ref in NT:
+                            found += 1
+                            refs.append(ref)
+                        else:
+                            not_in_nt += 1
+                            if args.verbose:
+                                print("missing ref in NT", ref)
+                    if not refs:
+                        continue
+                    else:
+                        ref = encode_refs(refs)
+                # single ref
                 else:
-                    text = text[:start] + ' ' + encode_ref(ref) + ' ' + text[end:]
-                    found += 1
+                    if ref not in NT:
+                        not_in_nt += 1
+                        if args.verbose:
+                            print("missing ref in NT", ref)
+                        continue
+                    else:
+                        found += 1
+                        ref = utils.encode_ref(ref)
+
+                text = text[:start] + ' ' + ref + ' ' + text[end:]
 
             outf.write(' '.join(text.split()))
 
-    print("Found {} refs".format(found))
+    print("Found {} refs. {} missing from NT".format(found, not_in_nt))
