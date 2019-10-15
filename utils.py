@@ -2,12 +2,16 @@
 import os
 import numpy as np
 
-import pie
 
-
-def lemmatize(model, sent, use_beam=True, beam_width=12, device='cpu'):
+def lemmatize_pie(model, sent, use_beam=True, beam_width=12, device='cpu'):
+    import pie
     inp, _ = pie.data.pack_batch(model.label_encoder, [sent], device=device)
     return model.predict(inp, "lemma", use_beam=use_beam, beam_width=beam_width)
+
+
+def lemmatize_treetagger(model, sent):
+    token, pos, lemma = zip(*[line.split('\t') for line in model.tag_text(sent)])
+    return {'token': token, 'pos': pos, 'lemma': lemma}
 
 
 def load_embeddings(words, path):
@@ -69,13 +73,12 @@ def read_bernard_lines(path='output/bernard/docs', drop_pc=False, lower=False):
             for line in f:
                 line = line.strip()
                 if line:
-                    if lower:
-                        line = line.lower()
-                    line = line.split('\t')
-                    wid, token, _, _, lemma = line
+                    wid, token, tt_lemma, pos, pie_lemma = line.split('\t')
                     if drop_pc and '.pc.' in wid:
                         continue
-                    yield line
+                    if lower:
+                        token = token.lower()
+                    yield wid, token, tt_lemma, pos, pie_lemma
                 else:
                     yield None
 
@@ -83,12 +86,12 @@ def read_bernard_lines(path='output/bernard/docs', drop_pc=False, lower=False):
 def read_NT_lines(path='output/NT.csv', lower=False):
     with open(path) as f:
         for line in f:
-            if lower:
-                line = line.lower()
             # book, chapter, verse_num, verse(, lemma)
-            line = line.strip().split('\t')
+            book, chapter, verse_num, verse, lemma = line.strip().split('\t')
+            if lower:
+                verse = verse.lower()
 
-            yield line
+            yield book, chapter, verse_num, verse, lemma
 
 
 def read_stopwords(path='all.stop'):

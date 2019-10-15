@@ -33,7 +33,7 @@ def load_bernard(nwords, overlap, context_words=0, stopwords=None):
             if idx + nwords == len(group):
                 break
 
-            ids, tokens, _, _, lemmas = zip(*group[idx: idx + nwords])
+            ids, tokens, lemmas, _, _ = zip(*group[idx: idx + nwords])
             # id
             for i in ids:
                 id2doc[i] = len(docs)
