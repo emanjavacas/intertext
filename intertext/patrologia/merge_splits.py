@@ -5,7 +5,7 @@ import glob
 import string
 
 
-PATH = 'patrologia/output/raw/'
+PATH = 'output/patrologia/raw/'
 
 def strip_punctuation(w):
     return w.translate(str.maketrans('', '', string.punctuation))
@@ -81,7 +81,7 @@ def merge_file(f, vocab):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target', default='patrologia/output/merged/')
+    parser.add_argument('--target', default='output/patrologia/merged/')
     args = parser.parse_args()
 
     vocab = get_vocab()

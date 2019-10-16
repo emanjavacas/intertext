@@ -7,7 +7,8 @@ import numpy as np
 
 import Levenshtein
 
-import utils
+from intertext import utils
+from intertext.patrologia.utils import encode_ref
 
 
 RE_REF = r"([ivcxl]+ )?([a-z]+) ?[\.,·]? ?[\.,·]? ([icvxl]+) ?[\.,·]? ?([0-9]+|[icvxl]+)"
@@ -139,8 +140,8 @@ def roman_to_int(roman):
 
 class BibleRef:
     def __init__(self):
-        self.fixes = read_mapping('patrologia/book.mapping')
-        self.mapping = utils.read_mappings('patrologia/bible.mapping')
+        self.fixes = read_mapping('intertext/patrologia/book.mapping')
+        self.mapping = utils.read_mappings('intertext/patrologia/bible.mapping')
 
     def map(self, ref):
         book_num, book, chapter, verse = ref
@@ -181,13 +182,13 @@ class BibleRef:
 
 
 def encode_refs(ref):
-    return ' '.join(map(utils.encode_ref, ref))
+    return ' '.join(map(encode_ref, ref))
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target', default='patrologia/output/refs')
+    parser.add_argument('--target', default='output/patrologia/refs')
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
 
@@ -199,7 +200,7 @@ if __name__ == '__main__':
     found = 0
     not_in_nt = 0
 
-    for f in glob.glob('patrologia/output/merged/*/*'):
+    for f in glob.glob('output/patrologia/merged/*/*'):
 
         parent = os.path.basename(os.path.dirname(f))
         parent = os.path.join(args.target, parent)
@@ -236,7 +237,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         found += 1
-                        ref = utils.encode_ref(ref)
+                        ref = encode_ref(ref)
 
                 text = text[:start] + ' ' + ref + ' ' + text[end:]
 

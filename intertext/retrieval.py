@@ -7,8 +7,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import pairwise_kernels
 
 from soft_cosine import soft_cosine4, get_M
-import utils
-import data
+
+from intertext import utils
+from intertext import data
 
 
 def get_rankings(D, refs, ftype='sim'):

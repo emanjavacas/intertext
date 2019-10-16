@@ -60,9 +60,9 @@ if __name__ == '__main__':
         model = treetaggerwrapper.TreeTagger(
             TAGDIR=args.treetagger_dir,
             TAGLANG='la',
-            # TAGOPT='-token -lemma -sgml -quiet -no-unknown',
+            TAGOPT='-token -lemma -sgml -quiet -cap-heuristics',
             # TAGINENCERR='strict',
-            TAGABBREV='patrologia/latin.abbrev')
+            TAGABBREV='intertext/patrologia/latin.abbrev')
 
     with open(args.target, 'w') as f:
         for doc_id, verses in tqdm.tqdm(list(read_NT(path=args.source).items())):

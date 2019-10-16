@@ -29,7 +29,7 @@ def parse_file(fname):
     return tree
 
 
-def parse_dir(dirname='./biblindex/SCT1-5/'):
+def parse_dir(dirname):
     for f in os.listdir(dirname):
         if not f.endswith('xml'):
             warnings.warn("Ignoring file: {}".format(f))

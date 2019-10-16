@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import distance
 
-import utils
+from intertext import utils
 
 
 def load_bernard_documents():
@@ -268,7 +268,7 @@ if __name__ == '__main__':
     (bernard, NT), refs, (b_doc_ids, NT_doc_ids) = get_collection_with_refs(
         args.chunk_size, min_chunk_size=args.min_chunk_size)
 
-    outfolder = 'topic-docs'
+    outfolder = 'output/topic-docs'
 
     if not os.path.isdir(outfolder):
         os.makedirs(outfolder)

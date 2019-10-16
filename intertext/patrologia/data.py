@@ -1,6 +1,7 @@
 
 import regex as re
-from patrologia import utils
+
+from intertext.patrologia import utils
 
 RE_NUM = r"[0-9]+"
 

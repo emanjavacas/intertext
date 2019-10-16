@@ -11,7 +11,7 @@ OPTIONS="-token -lemma -sgml -cap-heuristics"
 TOKENIZER=${CMD}/utf8-tokenize.perl
 MWL=${CMD}/mwl-lookup.perl
 TAGGER=${BIN}/tree-tagger
-ABBR_LIST=patrologia/latin.abbrv
+ABBR_LIST=intertext/patrologia/latin.abbrv
 PARFILE=${LIB}/latin.par
 MWLFILE=${LIB}/latin-mwls
 

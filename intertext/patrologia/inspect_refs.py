@@ -2,7 +2,7 @@
 import re
 import glob
 
-import utils
+from .. import utils
 
 
 if __name__ == '__main__':

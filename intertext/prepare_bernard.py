@@ -3,7 +3,7 @@ import os
 
 from cltk.tokenize.latin.sentence import SentenceTokenizer
 
-import parse_bernard
+from intertext import parse_bernard
 
 sentok = SentenceTokenizer()
 

@@ -6,9 +6,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import pairwise_kernels
 from sklearn.model_selection import train_test_split
 
-import data
-import random
+from intertext import data
 
+import random
 random_state = 1001
 random.seed(random_state)
 

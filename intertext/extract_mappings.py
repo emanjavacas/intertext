@@ -2,7 +2,7 @@
 import collections
 import difflib
 
-import prepare_bible
+from intertext import prepare_bible
 
 
 def LCS(a, b):

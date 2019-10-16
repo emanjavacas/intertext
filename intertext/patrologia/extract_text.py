@@ -5,7 +5,8 @@ import collections
 from lxml import etree
 import glob
 
-PATH = 'patrologia/corrected/'
+
+PATH = 'source/patrologia/'
 PARSER = etree.XMLParser(recover=True)
 NSMAP = {'tei': 'http://www.tei-c.org/ns/1.0'}
 
@@ -195,7 +196,7 @@ class Merger:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--target', default='patrologia/output/raw/')
+    parser.add_argument('--target', default='output/patrologia/raw/')
     args = parser.parse_args()
 
     vocab = get_vocab()
