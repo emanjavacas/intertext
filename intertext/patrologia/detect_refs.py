@@ -8,7 +8,7 @@ import numpy as np
 import Levenshtein
 
 from intertext import utils
-from intertext.patrologia.utils import encode_ref
+import intertext.patrologia.utils as p_utils
 
 
 RE_REF = r"([ivcxl]+ )?([a-z]+) ?[\.,·]? ?[\.,·]? ([icvxl]+) ?[\.,·]? ?([0-9]+|[icvxl]+)"
@@ -23,7 +23,7 @@ def get_refs(path='patrologia/refs.txt'):
 
 
 def extract_ref(ref):
-    # remove parenthses, lower and remove trailing space
+    # remove parentheses, lower and remove trailing space
     ref = ref.replace("(", "").replace(")", "").lower().strip()
     # normalize whitespace
     ref = ' '.join(ref.split())
@@ -142,6 +142,13 @@ class BibleRef:
     def __init__(self):
         self.fixes = read_mapping('intertext/patrologia/book.mapping')
         self.mapping = utils.read_mappings('intertext/patrologia/bible.mapping')
+        RE_REF_DETECT = r"( [i]+ )?({})[\.,·]? [\.,·]?[ ]?" + \
+                        r"([icvxl]+)[ ]?[\.,·][ ]?([0-9]+|[icvxl]+)"
+        self.RE_REF_DETECT = RE_REF_DETECT.format(
+            '|'.join(list(self.fixes) + list(self.mapping)))
+        self.has_book_num = set(
+            ['Kings', 'John', 'Samuel', 'Timothy', 'Peter',
+             'Maccabees', 'Thessalonians', 'Chronicles', 'Corinthians'])
 
     def map(self, ref):
         book_num, book, chapter, verse = ref
@@ -166,7 +173,8 @@ class BibleRef:
                 try:
                     book, chapter, verse = self.map(ref)
                     yield (book, chapter, verse), (start, end)
-                except Exception:
+                except Exception as e:
+                    print(e, ref)
                     continue
             # multi ref
             else:
@@ -180,9 +188,50 @@ class BibleRef:
                 if refs:
                     yield refs, (start, end)
 
+    def detect_refs(self, text):
+        text = ' '.join(text.lower().strip().split())
+        for ref in re.finditer(self.RE_REF_DETECT, text):
+            book_num, book, chapter, verse = ref.groups()
+            if book_num is not None:
+                book_num = book_num.strip()
+                try:
+                    if self.mapping[self.fixes.get(book, book)] not in self.has_book_num:
+                        book_num = None
+                except KeyError:
+                    continue
+            try:
+                book, chapter, verse = self.map((book_num, book, chapter, verse))
+                start, end = ref.span()
+                yield (book, chapter, verse), (start, end)
+            except Exception as e:
+                print(e, book_num, book, chapter)
+                continue
+
 
 def encode_refs(ref):
-    return ' '.join(map(encode_ref, ref))
+    return ' '.join(map(p_utils.encode_ref, ref))
+
+
+def read_refs():
+    refs = []
+    for f in glob.glob('output/patrologia/refs/*/*'):
+        with open(f) as inp:
+            text = inp.read()
+            for ref in re.finditer(p_utils.RE_REF, text):
+                refs.append(p_utils.decode_ref(ref.group()))
+    return refs
+
+
+# NT = {}
+# for book, chapter, verse, token, lemma in utils.read_NT_lines():
+#     NT[book, chapter, verse] = token
+# bible_ref = BibleRef()
+# refs = []
+# for f in glob.glob('output/patrologia/refs/*/*'):
+#     with open(f) as inp:
+#         for ref, _ in bible_ref.detect_refs(inp.read()):
+#             if ref in NT:
+#                 print(ref)
 
 
 if __name__ == '__main__':
@@ -197,8 +246,8 @@ if __name__ == '__main__':
         NT[book, chapter, verse] = token
 
     bible_ref = BibleRef()
-    found = 0
-    not_in_nt = 0
+    found = found_detect = 0
+    not_in_nt = not_in_nt_detect = 0
 
     for f in glob.glob('output/patrologia/merged/*/*'):
 
@@ -210,9 +259,10 @@ if __name__ == '__main__':
 
         with open(f) as inf, open(path, 'w') as outf:
             text = ' '.join(inf.read().split())
+            # 1. Find references around parentheses
             refs = list(bible_ref.find_refs(text))[::-1]
             for ref, (start, end) in refs:
-                # multi-ref
+                # 1.1. multi-ref
                 if isinstance(ref, list):
                     # filter out those not in NT
                     refs = []
@@ -228,7 +278,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         ref = encode_refs(refs)
-                # single ref
+                # 1.2. single ref
                 else:
                     if ref not in NT:
                         not_in_nt += 1
@@ -237,10 +287,24 @@ if __name__ == '__main__':
                         continue
                     else:
                         found += 1
-                        ref = encode_ref(ref)
+                        ref = p_utils.encode_ref(ref)
 
                 text = text[:start] + ' ' + ref + ' ' + text[end:]
+
+            # 2. Find references on free running text under stricter conditions
+            refs = list(bible_ref.detect_refs(text))[::-1]
+            for ref, (start, end) in refs:
+                if ref not in NT:
+                    not_in_nt_detect += 1
+                    if args.verbose:
+                        print("missing ref in NT", ref)
+                    continue
+                else:
+                    found_detect += 1
+                    ref = p_utils.encode_ref(ref)
+                    text = text[:start] + ' ' + ref + ' ' + text[end:]
 
             outf.write(' '.join(text.split()))
 
     print("Found {} refs. {} missing from NT".format(found, not_in_nt))
+    print("Detected {} refs. {} missing from NT".format(found_detect, not_in_nt_detect))

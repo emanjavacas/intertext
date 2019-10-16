@@ -2,7 +2,7 @@
 import re
 import glob
 
-from .. import utils
+from intertext.patrologia import utils
 
 
 if __name__ == '__main__':
