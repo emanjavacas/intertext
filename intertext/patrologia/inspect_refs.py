@@ -2,7 +2,8 @@
 import re
 import glob
 
-from intertext.patrologia import utils
+import intertext.patrologia.utils as p_utils
+from intertext import utils
 
 
 if __name__ == '__main__':
@@ -12,11 +13,11 @@ if __name__ == '__main__':
 
     context = 100
 
-    for f in glob.glob('patrologia/output/refs/*/*'):
+    for f in glob.glob('output/patrologia/refs/*/*'):
         with open(f) as f:
             text = f.read()
-            for m in re.finditer(utils.RE_REF, text):
+            for m in re.finditer(p_utils.RE_REF, text):
                 (start, end), ref = m.span(), m.group()
                 left = text[start-context: start]
-                right = NT[utils.decode_ref(ref)]
+                right = NT[p_utils.decode_ref(ref)]
                 print('\t'.join([left, ref, right]) + '\n')

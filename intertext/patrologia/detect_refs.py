@@ -11,8 +11,31 @@ from intertext import utils
 import intertext.patrologia.utils as p_utils
 
 
-RE_REF = r"([ivcxl]+ )?([a-z]+) ?[\.,·]? ?[\.,·]? ([icvxl]+) ?[\.,·]? ?([0-9]+|[icvxl]+)"
+RE_REF = (
+    r"([ivcxl]+ )?"         # book num
+    r"([a-z]+)"              # book
+    r" ?[\.,·]? ?[\.,·]? "
+    r"([icvxl]+)"            # chapter
+    r" ?[\.,·]? "
+    r"(i?[0-9]+|[icvxl]+)"    # verse
+)
 
+# TODO: extract multiple refs
+# - (Coloss. III, 1 , 2) Colossians_3_1
+# - (Isai. XL, 6-8) Isaiah_40_6
+# - (Matth . vi, 20 et 21) Matthew_6_20
+# - ( Act, VII, 58. et 59) Acts_7_58
+# - ( Psal. XXXVI, 10, 55, 36) Psalms_36_10
+RE_REF_1 = r"et ([0-9]+|[icvxl]+)"
+RE_REF_2 = r"- ?([1-9][0-9]*)"
+RE_REF_3 = r"([\.,] ?([1-9][0-9]*))+"
+RE_REF_COMPLEX = r"(?P<rest> ?[\.,]?{}".format(
+    '(' + '|'.join([RE_REF_1, RE_REF_2, RE_REF_3]) + '))?')
+RE_REF += RE_REF_COMPLEX
+
+# TODO: split on other than just ";":
+# - (Matth. XXII, 23 32, et Luc. xx, 27-58) Matthew_22_23
+# - ( Ephes. IV, 15, et Coloss. I, 18 ) Ephesians_4_15
 
 def get_refs(path='patrologia/refs.txt'):
     with open(path) as f:
@@ -39,8 +62,50 @@ def extract_ref(ref):
         return output
 
     m = re.match(RE_REF, ref)
+
     if m is not None:
-        return tuple(g.strip() if g is not None else g for g in m.groups())
+        # base groups
+        book_num, book, chapter, verse, *_ = [
+            (g or '').strip() or None for g in m.groups()]
+
+        # check rest
+        rest = m.groupdict()['rest']
+
+        if rest is not None:
+            rest = rest.strip()
+            tup = (book_num, book, chapter)
+
+            # et
+            if re.match(RE_REF_1, rest):
+                new_verse = re.search(r"([0-9]+|[icvxl]+)", rest).group()
+                return [tup + (verse,), tup + (new_verse,)]
+
+            # hyphen range
+            elif re.match(RE_REF_2, rest):
+                if not verse.isdigit():
+                    # assume mistake
+                    return
+                start, stop = int(verse), int(re.search(r"([0-9]+)", rest).group())
+                # ignore spans larger than 15
+                if start > stop or start == stop or stop - start > 15:
+                    return
+                output = []
+                for verse in range(start, stop + 1):
+                    output.append(tup + (str(verse), ))
+                return output
+
+            # comma separated
+            elif re.match(RE_REF_3, rest):
+                tup = (book_num, book, chapter)
+                output = []
+                output.append(tup + (verse,))
+                for verse in re.finditer(r"([0-9]+|[icvxl]+)", rest):
+                    output.append(tup + (verse.group(),))
+                return output
+            else:
+                print('Warning, unmatched complex regex: "{}"'.format(rest))
+
+        return book_num, book, chapter, verse
 
 
 def get_levenshtein_mapping(counter):
@@ -151,17 +216,19 @@ class BibleRef:
              'Maccabees', 'Thessalonians', 'Chronicles', 'Corinthians'])
 
     def map(self, ref):
-        book_num, book, chapter, verse = ref
+        book_num, book, chapter, verse, *_ = ref
         book = self.mapping[self.fixes.get(book, book)]
         if book_num is not None:
             book = str(roman_to_int(book_num)) + ' ' + book
         chapter = str(roman_to_int(chapter))
-        if not verse.isdigit():
+        if verse.startswith('i') and verse[1:].isdigit():
+            verse = '1' + verse[1:]
+        elif not verse.isdigit():
             verse = str(roman_to_int(verse))
         return book, chapter, verse
 
     def find_refs(self, text):
-        for m in re.finditer("\\([^)]+\\)", text):
+        for m in re.finditer("\\([^)]{,100}\\)", text):
             start, end = m.span()
             ref = m.group()
             ref = extract_ref(ref)
@@ -173,8 +240,7 @@ class BibleRef:
                 try:
                     book, chapter, verse = self.map(ref)
                     yield (book, chapter, verse), (start, end)
-                except Exception as e:
-                    print(e, ref)
+                except Exception:
                     continue
             # multi ref
             else:
@@ -203,8 +269,7 @@ class BibleRef:
                 book, chapter, verse = self.map((book_num, book, chapter, verse))
                 start, end = ref.span()
                 yield (book, chapter, verse), (start, end)
-            except Exception as e:
-                print(e, book_num, book, chapter)
+            except Exception:
                 continue
 
 
@@ -220,18 +285,6 @@ def read_refs():
             for ref in re.finditer(p_utils.RE_REF, text):
                 refs.append(p_utils.decode_ref(ref.group()))
     return refs
-
-
-# NT = {}
-# for book, chapter, verse, token, lemma in utils.read_NT_lines():
-#     NT[book, chapter, verse] = token
-# bible_ref = BibleRef()
-# refs = []
-# for f in glob.glob('output/patrologia/refs/*/*'):
-#     with open(f) as inp:
-#         for ref, _ in bible_ref.detect_refs(inp.read()):
-#             if ref in NT:
-#                 print(ref)
 
 
 if __name__ == '__main__':
@@ -291,20 +344,74 @@ if __name__ == '__main__':
 
                 text = text[:start] + ' ' + ref + ' ' + text[end:]
 
-            # 2. Find references on free running text under stricter conditions
-            refs = list(bible_ref.detect_refs(text))[::-1]
-            for ref, (start, end) in refs:
-                if ref not in NT:
-                    not_in_nt_detect += 1
-                    if args.verbose:
-                        print("missing ref in NT", ref)
-                    continue
-                else:
-                    found_detect += 1
-                    ref = p_utils.encode_ref(ref)
-                    text = text[:start] + ' ' + ref + ' ' + text[end:]
+            # # Warning: this is quite noisy, stays disabled by default
+            # # 2. Find references on free running text under stricter conditions
+            # refs = list(bible_ref.detect_refs(text))[::-1]
+            # for ref, (start, end) in refs:
+            #     if ref not in NT:
+            #         not_in_nt_detect += 1
+            #         if args.verbose:
+            #             print("missing ref in NT", ref)
+            #         continue
+            #     else:
+            #         found_detect += 1
+            #         ref = p_utils.encode_ref(ref) + '___'
+            #         text = text[:start] + ' ' + ref + ' ' + text[end:]
 
             outf.write(' '.join(text.split()))
 
     print("Found {} refs. {} missing from NT".format(found, not_in_nt))
     print("Detected {} refs. {} missing from NT".format(found_detect, not_in_nt_detect))
+
+
+# NT = {}
+# for book, chapter, verse, token, lemma in utils.read_NT_lines():
+#     NT[book, chapter, verse] = token
+# bible_ref = BibleRef()
+# refs = []
+# for idx, f in enumerate(glob.glob('output/patrologia/merged/*/*')):
+#     if idx == 2:
+#         break
+#     with open(f) as inp:
+#         src_text = ' '.join(inp.read().split())
+#         text = src_text
+#         refs = list(bible_ref.find_refs(src_text))[::-1]
+#         print(len(refs))
+#         for ref, (start, end) in refs:
+#             # 1.1. multi-ref
+#             if isinstance(ref, list):
+#                 # filter out those not in NT
+#                 refs = []
+#                 for ref in ref:
+#                     if ref in NT:
+#                         refs.append(ref)
+#                 if not refs:
+#                     continue
+#                 else:
+#                     ref = encode_refs(refs)
+#             # 1.2. single ref
+#             else:
+#                 if ref not in NT:
+#                     continue
+#                 else:
+#                     ref = p_utils.encode_ref(ref)
+
+#             print(text[start:end], ref)
+#             text = text[:start] + ' ' + ref + ' ' + text[end:]
+
+# def inline_diff(a, b):
+#     import difflib
+#     matcher = difflib.SequenceMatcher(None, a, b)
+#     def process_tag(tag, i1, i2, j1, j2):
+#         if tag == 'replace':
+#             return '{' + matcher.a[i1:i2] + ' -> ' + matcher.b[j1:j2] + '}'
+#         if tag == 'delete':
+#             return '{- ' + matcher.a[i1:i2] + '}'
+#         if tag == 'equal':
+#             return matcher.a[i1:i2]
+#         if tag == 'insert':
+#             return '{+ ' + matcher.b[j1:j2] + '}'
+#         assert false, "Unknown tag %r"%tag
+#     return ''.join(process_tag(*t) for t in matcher.get_opcodes())
+
+# # inline_diff(src_text, text)
